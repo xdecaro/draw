@@ -1,0 +1,80 @@
+name: Release Draw package
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - VERSION
+      - .github/workflows/release.yml
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Read version
+        run: echo "VERSION=$(tr -d '\r\n' < VERSION)" >> "$GITHUB_ENV"
+      - name: Refuse existing release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "Release v${VERSION} already exists"
+            exit 1
+          fi
+      - name: Validate sources and boundaries
+        run: |
+          find component tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/core-integration-smoke.php
+          python3 - <<'PY'
+          import pathlib, xml.etree.ElementTree as ET
+          v = pathlib.Path('VERSION').read_text().strip()
+          for p in ['component/decarodraw.xml','package/pkg_decarodraw.xml','updates/pkg_decarodraw.xml']:
+              r = ET.parse(p).getroot()
+              n = r.find('version') if r.tag == 'extension' else r.find('./update/version')
+              assert n is not None and n.text == v, f'{p}: version mismatch'
+          PY
+          ! grep -RniE '#__dcl_|#__decarodcl_' component --exclude='*.md'
+          ! grep -RniE 'DROP[[:space:]]+TABLE|TRUNCATE[[:space:]]+TABLE' component/admin/sql
+      - name: Build deterministic packages
+        run: |
+          bash build/build.sh
+          cp dist/SHA256SUMS.txt /tmp/draw-sums
+          bash build/build.sh
+          diff -u /tmp/draw-sums dist/SHA256SUMS.txt
+          for file in dist/*.zip; do unzip -t "$file" >/dev/null; done
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${VERSION}" \
+            "dist/com_decarodraw_${VERSION}.zip" \
+            "dist/pkg_decarodraw_${VERSION}.zip" \
+            "dist/SHA256SUMS.txt" \
+            --prerelease \
+            --title "Draw by xdecaro ${VERSION}" \
+            --notes "First installable Core-first Draw baseline. It fixes the public integration boundary and storage/ACL foundation; the real draw engine and live presentation remain Draw-owned follow-up work."
+      - name: Publish package checksum
+        run: |
+          export PACKAGE_SHA="$(sha256sum "dist/pkg_decarodraw_${VERSION}.zip" | awk '{print $1}')"
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          path = Path('updates/pkg_decarodraw.xml')
+          text = path.read_text()
+          text = re.sub(r'<sha256>[^<]*</sha256>', '', text)
+          text = text.replace('<targetplatform', f'<sha256>{os.environ["PACKAGE_SHA"]}</sha256><targetplatform', 1)
+          path.write_text(text)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add updates/pkg_decarodraw.xml
+          git diff --cached --quiet || git commit -m "Publish SHA-256 for Draw ${VERSION}"
+          git push
