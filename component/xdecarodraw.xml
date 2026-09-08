@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <extension type="component" method="upgrade">
-  <name>COM_DECARODRAW</name>
+  <name>COM_XDECARODRAW</name>
   <author>Luca De Caro</author>
   <creationDate>2026-09</creationDate>
   <copyright>Copyright (C) 2026 Luca De Caro. All rights reserved.</copyright>
   <license>GNU General Public License version 2 or later</license>
   <authorUrl>https://github.com/xdecaro/draw</authorUrl>
-  <version>0.1.0</version>
-  <description>COM_DECARODRAW_XML_DESCRIPTION</description>
-  <namespace path="src">Xdecaro\Component\Decarodraw</namespace>
+  <version>0.2.0</version>
+  <description>COM_XDECARODRAW_XML_DESCRIPTION</description>
+  <namespace path="src">xdecaro\Component\Draw</namespace>
   <administration>
-    <menu view="dashboard">COM_DECARODRAW</menu>
+    <menu view="dashboard">COM_XDECARODRAW</menu>
     <submenu>
-      <menu view="dashboard">COM_DECARODRAW_DASHBOARD</menu>
-      <menu view="information">COM_DECARODRAW_INFORMATION</menu>
+      <menu view="dashboard">COM_XDECARODRAW_DASHBOARD</menu>
+      <menu view="information">COM_XDECARODRAW_INFORMATION</menu>
     </submenu>
     <files folder="admin">
       <filename>access.xml</filename>
@@ -25,7 +25,7 @@
       <folder>tmpl</folder>
     </files>
   </administration>
-  <media destination="com_decarodraw" folder="media">
+  <media destination="com_xdecarodraw" folder="media">
     <filename>joomla.asset.json</filename>
     <folder>css</folder>
   </media>

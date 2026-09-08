@@ -29,14 +29,14 @@ def add_tree(zf: ZipFile, source: Path):
     for path in sorted(p for p in source.rglob('*') if p.is_file()):
         add_bytes(zf, path.relative_to(source).as_posix(), path.read_bytes(), os.access(path, os.X_OK))
 
-component_zip = dist / f'com_decarodraw_{version}.zip'
+component_zip = dist / f'com_xdecarodraw_{version}.zip'
 with ZipFile(component_zip, 'w') as zf:
     add_tree(zf, root / 'component')
 
-package_zip = dist / f'pkg_decarodraw_{version}.zip'
+package_zip = dist / f'pkg_xdecarodraw_{version}.zip'
 with ZipFile(package_zip, 'w') as zf:
-    add_bytes(zf, 'pkg_decarodraw.xml', (root / 'package/pkg_decarodraw.xml').read_bytes())
-    add_bytes(zf, 'com_decarodraw.zip', component_zip.read_bytes())
+    add_bytes(zf, 'pkg_xdecarodraw.xml', (root / 'package/pkg_xdecarodraw.xml').read_bytes())
+    add_bytes(zf, 'com_xdecarodraw.zip', component_zip.read_bytes())
 
 lines = []
 for path in (component_zip, package_zip):
