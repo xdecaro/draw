@@ -1,0 +1,44 @@
+name: Build Draw
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.1', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Validate PHP and Core fallback
+        run: |
+          find component tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/core-integration-smoke.php
+      - name: Validate XML
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2-utils
+          find component package updates -name '*.xml' -print0 | xargs -0 -n1 xmllint --noout
+      - name: Guard boundaries and schema
+        run: |
+          ! grep -RniE 'DROP[[:space:]]+TABLE|TRUNCATE[[:space:]]+TABLE' component/admin/sql
+          ! grep -RniE '#__dcl_|#__decarodcl_' component
+          grep -Rni 'com_decarodcl' docs component >/dev/null
+          grep -Rni 'com_decarodraw' component package >/dev/null
+      - name: Deterministic build A
+        run: bash build/build.sh && cp dist/SHA256SUMS.txt /tmp/draw-sums
+      - name: Deterministic build B
+        run: bash build/build.sh && diff -u /tmp/draw-sums dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: matrix.php == '8.3'
+        with:
+          name: draw-${{ github.sha }}
+          path: dist/

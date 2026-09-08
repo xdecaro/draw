@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="component" method="upgrade">
+  <name>COM_DECARODRAW</name>
+  <author>Luca De Caro</author>
+  <creationDate>2026-09</creationDate>
+  <copyright>Copyright (C) 2026 Luca De Caro. All rights reserved.</copyright>
+  <license>GNU General Public License version 2 or later</license>
+  <authorUrl>https://github.com/xdecaro/draw</authorUrl>
+  <version>0.1.0</version>
+  <description>COM_DECARODRAW_XML_DESCRIPTION</description>
+  <namespace path="src">Xdecaro\Component\Decarodraw</namespace>
+  <administration>
+    <menu view="dashboard">COM_DECARODRAW</menu>
+    <submenu>
+      <menu view="dashboard">COM_DECARODRAW_DASHBOARD</menu>
+      <menu view="information">COM_DECARODRAW_INFORMATION</menu>
+    </submenu>
+    <files folder="admin">
+      <filename>access.xml</filename>
+      <filename>config.xml</filename>
+      <folder>language</folder>
+      <folder>services</folder>
+      <folder>sql</folder>
+      <folder>src</folder>
+      <folder>tmpl</folder>
+    </files>
+  </administration>
+  <media destination="com_decarodraw" folder="media">
+    <filename>joomla.asset.json</filename>
+    <folder>css</folder>
+  </media>
+  <install><sql><file driver="mysql" charset="utf8mb4">sql/install.mysql.utf8mb4.sql</file></sql></install>
+  <update><schemas><schemapath type="mysql">sql/updates/mysql</schemapath></schemas></update>
+</extension>
