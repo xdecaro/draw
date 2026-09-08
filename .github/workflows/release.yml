@@ -36,12 +36,15 @@ jobs:
           python3 - <<'PY'
           import pathlib, xml.etree.ElementTree as ET
           v = pathlib.Path('VERSION').read_text().strip()
-          for p in ['component/decarodraw.xml','package/pkg_decarodraw.xml','updates/pkg_decarodraw.xml']:
+          for p in ['component/xdecarodraw.xml','package/pkg_xdecarodraw.xml','updates/pkg_xdecarodraw.xml']:
               r = ET.parse(p).getroot()
               n = r.find('version') if r.tag == 'extension' else r.find('./update/version')
               assert n is not None and n.text == v, f'{p}: version mismatch'
           PY
-          ! grep -RniE '#__dcl_|#__decarodcl_' component --exclude='*.md'
+          grep -Fq 'xdecaro\Component\Draw' component/xdecarodraw.xml
+          grep -Fq '#__xdecarodraw_' component/admin/sql/install.mysql.utf8mb4.sql
+          ! grep -Rni '#__xdecarocompetitions_' component
+          ! grep -RIn 'Xdecaro\\' component package build tests updates README.md docs
           ! grep -RniE 'DROP[[:space:]]+TABLE|TRUNCATE[[:space:]]+TABLE' component/admin/sql
       - name: Build deterministic packages
         run: |
@@ -55,19 +58,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "v${VERSION}" \
-            "dist/com_decarodraw_${VERSION}.zip" \
-            "dist/pkg_decarodraw_${VERSION}.zip" \
+            "dist/com_xdecarodraw_${VERSION}.zip" \
+            "dist/pkg_xdecarodraw_${VERSION}.zip" \
             "dist/SHA256SUMS.txt" \
             --prerelease \
             --title "Draw by xdecaro ${VERSION}" \
-            --notes "First installable Core-first Draw baseline. It fixes the public integration boundary and storage/ACL foundation; the real draw engine and live presentation remain Draw-owned follow-up work."
+            --notes "Fresh prerelease technical baseline using com_xdecarodraw, pkg_xdecarodraw, xdecaro\\Component\\Draw and #__xdecarodraw_*. Draw remains independent from Competitions private tables."
       - name: Publish package checksum
         run: |
-          export PACKAGE_SHA="$(sha256sum "dist/pkg_decarodraw_${VERSION}.zip" | awk '{print $1}')"
+          export PACKAGE_SHA="$(sha256sum "dist/pkg_xdecarodraw_${VERSION}.zip" | awk '{print $1}')"
           python3 - <<'PY'
           import os, re
           from pathlib import Path
-          path = Path('updates/pkg_decarodraw.xml')
+          path = Path('updates/pkg_xdecarodraw.xml')
           text = path.read_text()
           text = re.sub(r'<sha256>[^<]*</sha256>', '', text)
           text = text.replace('<targetplatform', f'<sha256>{os.environ["PACKAGE_SHA"]}</sha256><targetplatform', 1)
@@ -75,6 +78,6 @@ jobs:
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add updates/pkg_decarodraw.xml
+          git add updates/pkg_xdecarodraw.xml
           git diff --cached --quiet || git commit -m "Publish SHA-256 for Draw ${VERSION}"
           git push

@@ -1,5 +1,5 @@
 <?php
-namespace Xdecaro\Component\Decarodraw\Administrator\Service;
+namespace xdecaro\Component\Draw\Administrator\Service;
 
 defined('_JEXEC') or die;
 
@@ -10,15 +10,15 @@ use Joomla\CMS\Extension\Service\Provider\MVCFactory;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Xdecaro\Component\Decarodraw\Administrator\Extension\DecarodrawComponent;
+use xdecaro\Component\Draw\Administrator\Extension\DrawComponent;
 
 return new class implements ServiceProviderInterface {
     public function register(Container $container): void
     {
-        $container->registerServiceProvider(new MVCFactory('Xdecaro\\Component\\Decarodraw'));
-        $container->registerServiceProvider(new ComponentDispatcherFactory('Xdecaro\\Component\\Decarodraw'));
+        $container->registerServiceProvider(new MVCFactory('xdecaro\\Component\\Draw'));
+        $container->registerServiceProvider(new ComponentDispatcherFactory('xdecaro\\Component\\Draw'));
         $container->share(CoreIntegrationService::class, static fn (): CoreIntegrationService => new CoreIntegrationService());
-        $container->set(ComponentInterface::class, static fn (Container $container): ComponentInterface => new DecarodrawComponent(
+        $container->set(ComponentInterface::class, static fn (Container $container): ComponentInterface => new DrawComponent(
             $container->get(ComponentDispatcherFactoryInterface::class),
             $container->get(MVCFactoryInterface::class)
         ));
