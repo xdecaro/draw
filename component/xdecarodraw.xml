@@ -6,9 +6,14 @@
   <copyright>Copyright (C) 2026 Luca De Caro. All rights reserved.</copyright>
   <license>GNU General Public License version 2 or later</license>
   <authorUrl>https://github.com/xdecaro/draw</authorUrl>
-  <version>0.2.0</version>
+  <version>1.0.0</version>
   <description>COM_XDECARODRAW_XML_DESCRIPTION</description>
   <namespace path="src">xdecaro\Component\Draw</namespace>
+  <files folder="site">
+    <folder>language</folder>
+    <folder>src</folder>
+    <folder>tmpl</folder>
+  </files>
   <administration>
     <menu view="dashboard">COM_XDECARODRAW</menu>
     <submenu>
@@ -28,7 +33,12 @@
   <media destination="com_xdecarodraw" folder="media">
     <filename>joomla.asset.json</filename>
     <folder>css</folder>
+    <folder>js</folder>
   </media>
-  <install><sql><file driver="mysql" charset="utf8mb4">sql/install.mysql.utf8mb4.sql</file></sql></install>
-  <update><schemas><schemapath type="mysql">sql/updates/mysql</schemapath></schemas></update>
+  <install>
+    <sql><file driver="mysql" charset="utf8">sql/install.mysql.utf8mb4.sql</file></sql>
+  </install>
+  <update>
+    <schemas><schemapath type="mysql">sql/updates/mysql</schemapath></schemas>
+  </update>
 </extension>

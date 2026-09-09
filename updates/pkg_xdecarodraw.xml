@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<updates><update><name>Draw by xdecaro</name><description>Controlled draws for the xdecaro Joomla ecosystem.</description><element>pkg_xdecarodraw</element><type>package</type><client>site</client><version>0.2.0</version><downloads><downloadurl type="full" format="zip">https://github.com/xdecaro/draw/releases/download/v0.2.0/pkg_xdecarodraw_0.2.0.zip</downloadurl></downloads><sha256>19a5700791e8340ed38d66a2c1773cb09dd500c2e75c7802879aa16d7e507920</sha256><targetplatform name="joomla" version="(4|5|6)\.[0-9]+" /><php_minimum>8.1.0</php_minimum></update></updates>
+<updates>
+  <update>
+    <name>Draw by xdecaro</name>
+    <description>Server-side controlled draws, live reveal and audit for Joomla.</description>
+    <element>pkg_xdecarodraw</element>
+    <type>package</type>
+    <client>site</client>
+    <version>1.0.0</version>
+    <downloads>
+      <downloadurl type="full" format="zip">https://github.com/xdecaro/draw/releases/download/v1.0.0/pkg_xdecarodraw_1.0.0.zip</downloadurl>
+    </downloads>
+    <targetplatform name="joomla" version="(4|5|6)\.[0-9]+" />
+    <php_minimum>8.1.0</php_minimum>
+  </update>
+</updates>
