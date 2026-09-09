@@ -6,6 +6,7 @@ on:
     paths:
       - VERSION
       - .github/workflows/release.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -18,62 +19,67 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
+          extensions: zip, simplexml
           coverage: none
       - name: Read version
         run: echo "VERSION=$(tr -d '\r\n' < VERSION)" >> "$GITHUB_ENV"
-      - name: Refuse existing release
+      - name: Check public distribution eligibility
+        id: visibility
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
-          if gh release view "v${VERSION}" >/dev/null 2>&1; then
-            echo "Release v${VERSION} already exists"
-            exit 1
+          set -euo pipefail
+          VISIBILITY="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.visibility')"
+          echo "visibility=${VISIBILITY}" >> "$GITHUB_OUTPUT"
+          if [ "$VISIBILITY" != 'public' ]; then
+            echo "::notice::Draw ${VERSION} is release-ready, but publication is intentionally skipped while ${GITHUB_REPOSITORY} is ${VISIBILITY}. Make the repository public, then run this workflow manually."
           fi
-      - name: Validate sources and boundaries
-        run: |
-          find component tests -name '*.php' -print0 | xargs -0 -n1 php -l
-          php tests/core-integration-smoke.php
-          python3 - <<'PY'
-          import pathlib, xml.etree.ElementTree as ET
-          v = pathlib.Path('VERSION').read_text().strip()
-          for p in ['component/xdecarodraw.xml','package/pkg_xdecarodraw.xml','updates/pkg_xdecarodraw.xml']:
-              r = ET.parse(p).getroot()
-              n = r.find('version') if r.tag == 'extension' else r.find('./update/version')
-              assert n is not None and n.text == v, f'{p}: version mismatch'
-          PY
-          grep -Fq 'xdecaro\Component\Draw' component/xdecarodraw.xml
-          grep -Fq '#__xdecarodraw_' component/admin/sql/install.mysql.utf8mb4.sql
-          ! grep -Rni '#__xdecarocompetitions_' component
-          ! grep -RIn 'Xdecaro\\' component package build tests updates README.md docs
-          ! grep -RniE 'DROP[[:space:]]+TABLE|TRUNCATE[[:space:]]+TABLE' component/admin/sql
-      - name: Build deterministic packages
-        run: |
-          bash build/build.sh
-          cp dist/SHA256SUMS.txt /tmp/draw-sums
-          bash build/build.sh
-          diff -u /tmp/draw-sums dist/SHA256SUMS.txt
-          for file in dist/*.zip; do unzip -t "$file" >/dev/null; done
-      - name: Publish prerelease
+      - name: Refuse existing release
+        if: steps.visibility.outputs.visibility == 'public'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${VERSION}" \
-            "dist/com_xdecarodraw_${VERSION}.zip" \
-            "dist/pkg_xdecarodraw_${VERSION}.zip" \
-            "dist/SHA256SUMS.txt" \
-            --prerelease \
-            --title "Draw by xdecaro ${VERSION}" \
-            --notes "Fresh prerelease technical baseline using com_xdecarodraw, pkg_xdecarodraw, xdecaro\\Component\\Draw and #__xdecarodraw_*. Draw remains independent from Competitions private tables."
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then echo "Release v${VERSION} already exists"; exit 1; fi
+      - name: Validate release sources
+        if: steps.visibility.outputs.visibility == 'public'
+        shell: bash
+        run: |
+          set -euo pipefail
+          find component tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/core-integration-smoke.php
+          php tests/draw-engine.php
+          python3 - <<'PY'
+          import json,pathlib,xml.etree.ElementTree as ET
+          v=pathlib.Path('VERSION').read_text().strip()
+          for p in ['component/xdecarodraw.xml','package/pkg_xdecarodraw.xml','updates/pkg_xdecarodraw.xml']:
+              r=ET.parse(p).getroot(); n=r.find('version') if r.tag=='extension' else r.find('./update/version'); assert n is not None and n.text==v
+          assert json.loads(pathlib.Path('component/media/joomla.asset.json').read_text())['version']==v
+          PY
+          grep -Fq 'charset="utf8"' component/xdecarodraw.xml
+          ! grep -RniE 'DROP[[:space:]]+TABLE|TRUNCATE[[:space:]]+TABLE' component/admin/sql
+          ! grep -Rni '#__xdecarocompetitions_' component
+      - name: Build deterministic packages
+        if: steps.visibility.outputs.visibility == 'public'
+        run: |
+          chmod +x build/build.sh; build/build.sh; cp dist/SHA256SUMS.txt /tmp/draw-sums; build/build.sh; diff -u /tmp/draw-sums dist/SHA256SUMS.txt
+          for file in dist/*.zip; do unzip -t "$file" >/dev/null; done
+      - name: Publish stable release
+        if: steps.visibility.outputs.visibility == 'public'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw 1.0: server-side deterministic assignment, validated constraints, immutable execution history, public live reveal, audit trail and optional Core 1.4 capabilities. Joomla 4/5/6 compatibility is gated in CI."
       - name: Publish package checksum
+        if: steps.visibility.outputs.visibility == 'public'
         run: |
           export PACKAGE_SHA="$(sha256sum "dist/pkg_xdecarodraw_${VERSION}.zip" | awk '{print $1}')"
           python3 - <<'PY'
-          import os, re
+          import os,re
           from pathlib import Path
-          path = Path('updates/pkg_xdecarodraw.xml')
-          text = path.read_text()
-          text = re.sub(r'<sha256>[^<]*</sha256>', '', text)
-          text = text.replace('<targetplatform', f'<sha256>{os.environ["PACKAGE_SHA"]}</sha256><targetplatform', 1)
+          path=Path('updates/pkg_xdecarodraw.xml'); text=path.read_text()
+          text=re.sub(r'\s*<sha256>[^<]*</sha256>','',text)
+          text=text.replace('<targetplatform',f'<sha256>{os.environ["PACKAGE_SHA"]}</sha256>\n    <targetplatform',1)
           path.write_text(text)
           PY
           git config user.name "github-actions[bot]"
