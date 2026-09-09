@@ -93,6 +93,8 @@ jobs:
       - name: Build Draw package
         run: chmod +x build/build.sh && build/build.sh
       - name: Download verified runtimes
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -102,7 +104,8 @@ jobs:
           curl -fL --retry 3 'https://github.com/xdecaro/core/releases/download/v1.4.0/pkg_xdecarocore_1.4.0.zip' -o /tmp/core.zip
           echo '4248f7e3de514c2ae2402ffc8ba12845647dca1ebac963da370650e88ac45def  /tmp/core.zip' | sha256sum --check --strict
           if [ '${{ matrix.mode }}' = 'repair-0.2.0' ]; then
-            curl -fL --retry 3 'https://github.com/xdecaro/draw/releases/download/v0.2.0/pkg_xdecarodraw_0.2.0.zip' -o /tmp/draw-old.zip
+            gh release download v0.2.0 --repo "$GITHUB_REPOSITORY" --pattern 'pkg_xdecarodraw_0.2.0.zip' --dir /tmp --clobber
+            mv /tmp/pkg_xdecarodraw_0.2.0.zip /tmp/draw-old.zip
             echo '19a5700791e8340ed38d66a2c1773cb09dd500c2e75c7802879aa16d7e507920  /tmp/draw-old.zip' | sha256sum --check --strict
           fi
           mkdir joomla; unzip -q /tmp/joomla.zip -d joomla
