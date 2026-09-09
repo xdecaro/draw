@@ -1,4 +1,4 @@
-name: Build Draw
+name: Draw CI
 
 on:
   push:
@@ -6,44 +6,123 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        php: ['8.1', '8.3']
+        php: ['8.1','8.3']
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          extensions: zip, simplexml
           coverage: none
-      - name: Validate PHP and Core fallback
+      - name: PHP syntax and domain tests
         run: |
-          find component tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          find component tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/core-integration-smoke.php
-      - name: Validate XML
+          php tests/draw-engine.php
+      - name: Validate metadata and boundaries
+        shell: bash
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libxml2-utils
-          find component package updates -name '*.xml' -print0 | xargs -0 -n1 xmllint --noout
-      - name: Guard boundaries schema and identity
-        run: |
-          test "$(cat VERSION)" = '0.2.0'
-          test -f component/xdecarodraw.xml
-          test -f package/pkg_xdecarodraw.xml
-          grep -Fq 'xdecaro\Component\Draw' component/xdecarodraw.xml
-          grep -Fq '#__xdecarodraw_' component/admin/sql/install.mysql.utf8mb4.sql
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"; test "$VERSION" = '1.0.0'
+          python3 - <<'PY'
+          import json,pathlib,xml.etree.ElementTree as ET
+          v=pathlib.Path('VERSION').read_text().strip()
+          for p in pathlib.Path('.').rglob('*.xml'): ET.parse(p)
+          targets=['component/xdecarodraw.xml','package/pkg_xdecarodraw.xml','updates/pkg_xdecarodraw.xml']
+          for p in targets:
+              r=ET.parse(p).getroot(); n=r.find('version') if r.tag=='extension' else r.find('./update/version'); assert n is not None and n.text==v,(p,'version mismatch')
+          assert json.loads(pathlib.Path('component/media/joomla.asset.json').read_text())['version']==v
+          assert pathlib.Path(f'component/admin/sql/updates/mysql/{v}.sql').is_file()
+          PY
+          grep -Fq 'charset="utf8"' component/xdecarodraw.xml
+          ! grep -Fq 'charset="utf8mb4"' component/xdecarodraw.xml
           ! grep -RniE 'DROP[[:space:]]+TABLE|TRUNCATE[[:space:]]+TABLE' component/admin/sql
           ! grep -Rni '#__xdecarocompetitions_' component
-          ! grep -RInE 'com_decarodraw|pkg_decarodraw|#__decarodraw_|Decarodraw' component package build tests updates README.md docs
-          ! grep -RIn 'Xdecaro\\' component package build tests updates README.md docs
-      - name: Deterministic build A
-        run: bash build/build.sh && cp dist/SHA256SUMS.txt /tmp/draw-sums
-      - name: Deterministic build B
-        run: bash build/build.sh && diff -u /tmp/draw-sums dist/SHA256SUMS.txt && for file in dist/*.zip; do unzip -t "$file" >/dev/null; done
-      - uses: actions/upload-artifact@v4
-        if: matrix.php == '8.3'
+          ! grep -RniE 'Math\.random|crypto\.getRandomValues' component/media/js
+          grep -Fq 'random_bytes(32)' component/admin/src/Service/DrawService.php
+          grep -Fq 'CapabilityRegistry' component/admin/src/Service/CoreIntegrationService.php
+          grep -Fq 'xdecaro.draw.result.v1' component/admin/src/Service/DrawReadService.php
+          for table in draws entries targets assignments audit; do grep -Fq "CREATE TABLE IF NOT EXISTS \`#__xdecarodraw_${table}\`" component/admin/sql/updates/mysql/1.0.0.sql; done
+      - name: Deterministic build
+        run: |
+          chmod +x build/build.sh
+          build/build.sh
+          cp dist/SHA256SUMS.txt /tmp/draw-sums
+          build/build.sh
+          diff -u /tmp/draw-sums dist/SHA256SUMS.txt
+          for z in dist/*.zip; do unzip -t "$z" >/dev/null; done
+          unzip -p dist/com_xdecarodraw_1.0.0.zip xdecarodraw.xml | grep -F '<version>1.0.0</version>'
+          unzip -l dist/com_xdecarodraw_1.0.0.zip | grep -F 'site/src/View/Live/HtmlView.php'
+
+  joomla-runtime:
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        joomla:
+          - {version: '4.4.14', php: '8.2', sha256: 'a1877816e070fa087529afcd73f214b7d5d76964d3ede0c3e6dfd354baad27b8'}
+          - {version: '5.4.8', php: '8.3', sha256: '8d3585939bca8e6b1d5f3e97dda2cc557c61e610daf488c871e1f62a97be9bd0'}
+          - {version: '6.1.3', php: '8.3', sha256: 'a49305652503f9344d046d55471f324a07882996132ed967c3b0fe34707ae4a1'}
+        mode: ['clean','repair-0.2.0']
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: joomla
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost" --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
         with:
-          name: xdecarodraw-${{ github.sha }}
-          path: dist/
+          php-version: ${{ matrix.joomla.php }}
+          extensions: mysqli, zip, simplexml
+          coverage: none
+      - name: Build Draw package
+        run: chmod +x build/build.sh && build/build.sh
+      - name: Download verified runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          J='${{ matrix.joomla.version }}'
+          curl -fL --retry 3 "https://github.com/joomla/joomla-cms/releases/download/${J}/Joomla_${J}-Stable-Full_Package.zip" -o /tmp/joomla.zip
+          echo '${{ matrix.joomla.sha256 }}  /tmp/joomla.zip' | sha256sum --check --strict
+          curl -fL --retry 3 'https://github.com/xdecaro/core/releases/download/v1.4.0/pkg_xdecarocore_1.4.0.zip' -o /tmp/core.zip
+          echo '4248f7e3de514c2ae2402ffc8ba12845647dca1ebac963da370650e88ac45def  /tmp/core.zip' | sha256sum --check --strict
+          if [ '${{ matrix.mode }}' = 'repair-0.2.0' ]; then
+            curl -fL --retry 3 'https://github.com/xdecaro/draw/releases/download/v0.2.0/pkg_xdecarodraw_0.2.0.zip' -o /tmp/draw-old.zip
+            echo '19a5700791e8340ed38d66a2c1773cb09dd500c2e75c7802879aa16d7e507920  /tmp/draw-old.zip' | sha256sum --check --strict
+          fi
+          mkdir joomla; unzip -q /tmp/joomla.zip -d joomla
+      - name: Install Joomla, Core and Draw
+        shell: bash
+        run: |
+          set -euo pipefail; cd joomla
+          php installation/joomla.php install --site-name='Draw CI' --admin-user='Draw CI Admin' --admin-username=admin --admin-password="DrawCI-${GITHUB_RUN_ID}!" --admin-email=admin@example.invalid --db-type=mysqli --db-host=127.0.0.1 --db-user=root --db-pass='' --db-name=joomla --db-prefix=xdd_ --db-encryption=0 --no-interaction
+          php cli/joomla.php extension:install --path=/tmp/core.zip -vvv
+          if [ '${{ matrix.mode }}' = 'repair-0.2.0' ]; then php cli/joomla.php extension:install --path=/tmp/draw-old.zip -vvv; fi
+          php cli/joomla.php extension:install --path="$GITHUB_WORKSPACE/dist/pkg_xdecarodraw_1.0.0.zip" -vvv
+      - name: Verify repaired schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          MYSQL=(mysql --protocol=TCP -h127.0.0.1 -uroot --batch --skip-column-names joomla)
+          test "$("${MYSQL[@]}" -e "SELECT COUNT(*) FROM xdd_extensions WHERE type='package' AND element='pkg_xdecarodraw';")" = 1
+          test "$("${MYSQL[@]}" -e "SELECT COUNT(*) FROM xdd_extensions WHERE type='component' AND element='com_xdecarodraw';")" = 1
+          for t in draws entries targets assignments audit; do test "$("${MYSQL[@]}" -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='joomla' AND table_name='xdd_xdecarodraw_${t}';")" = 1; done
+          schema="$("${MYSQL[@]}" -e "SELECT s.version_id FROM xdd_schemas s JOIN xdd_extensions e ON e.extension_id=s.extension_id WHERE e.type='component' AND e.element='com_xdecarodraw' LIMIT 1;")"
+          test "$schema" = '1.0.0'
+      - name: Exercise Draw runtime lifecycle
+        run: DRAW_JOOMLA_ROOT="$GITHUB_WORKSPACE/joomla" php tests/runtime-probe.php
