@@ -6,6 +6,7 @@ on:
     paths:
       - VERSION
       - .github/workflows/release.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,12 +23,26 @@ jobs:
           coverage: none
       - name: Read version
         run: echo "VERSION=$(tr -d '\r\n' < VERSION)" >> "$GITHUB_ENV"
+      - name: Check public distribution eligibility
+        id: visibility
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VISIBILITY="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.visibility')"
+          echo "visibility=${VISIBILITY}" >> "$GITHUB_OUTPUT"
+          if [ "$VISIBILITY" != 'public' ]; then
+            echo "::notice::Draw ${VERSION} is release-ready, but publication is intentionally skipped while ${GITHUB_REPOSITORY} is ${VISIBILITY}. Make the repository public, then run this workflow manually."
+          fi
       - name: Refuse existing release
+        if: steps.visibility.outputs.visibility == 'public'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view "v${VERSION}" >/dev/null 2>&1; then echo "Release v${VERSION} already exists"; exit 1; fi
       - name: Validate release sources
+        if: steps.visibility.outputs.visibility == 'public'
         shell: bash
         run: |
           set -euo pipefail
@@ -45,15 +60,18 @@ jobs:
           ! grep -RniE 'DROP[[:space:]]+TABLE|TRUNCATE[[:space:]]+TABLE' component/admin/sql
           ! grep -Rni '#__xdecarocompetitions_' component
       - name: Build deterministic packages
+        if: steps.visibility.outputs.visibility == 'public'
         run: |
           chmod +x build/build.sh; build/build.sh; cp dist/SHA256SUMS.txt /tmp/draw-sums; build/build.sh; diff -u /tmp/draw-sums dist/SHA256SUMS.txt
           for file in dist/*.zip; do unzip -t "$file" >/dev/null; done
       - name: Publish stable release
+        if: steps.visibility.outputs.visibility == 'public'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw 1.0: server-side deterministic assignment, validated constraints, immutable execution history, public live reveal, audit trail and optional Core 1.4 capabilities. Joomla 4/5/6 compatibility is gated in CI."
       - name: Publish package checksum
+        if: steps.visibility.outputs.visibility == 'public'
         run: |
           export PACKAGE_SHA="$(sha256sum "dist/pkg_xdecarodraw_${VERSION}.zip" | awk '{print $1}')"
           python3 - <<'PY'
