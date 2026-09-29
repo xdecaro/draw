@@ -28,11 +28,14 @@ jobs:
           find component tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/core-integration-smoke.php
           php tests/draw-engine.php
+          php tests/draw-integration-contract.php
+          php tests/draw-integration-service.php
       - name: Validate metadata and boundaries
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(tr -d '\r\n' < VERSION)"; test "$VERSION" = '1.0.0'
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           python3 - <<'PY'
           import json,pathlib,xml.etree.ElementTree as ET
           v=pathlib.Path('VERSION').read_text().strip()
@@ -51,17 +54,20 @@ jobs:
           grep -Fq 'random_bytes(32)' component/admin/src/Service/DrawService.php
           grep -Fq 'CapabilityRegistry' component/admin/src/Service/CoreIntegrationService.php
           grep -Fq 'xdecaro.draw.result.v1' component/admin/src/Service/DrawReadService.php
+          grep -Fq 'xdecaro.draw.request.v1' component/admin/src/Service/DrawIntegrationService.php
           for table in draws entries targets assignments audit; do grep -Fq "CREATE TABLE IF NOT EXISTS \`#__xdecarodraw_${table}\`" component/admin/sql/updates/mysql/1.0.0.sql; done
       - name: Deterministic build
         run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
           chmod +x build/build.sh
           build/build.sh
           cp dist/SHA256SUMS.txt /tmp/draw-sums
           build/build.sh
           diff -u /tmp/draw-sums dist/SHA256SUMS.txt
           for z in dist/*.zip; do unzip -t "$z" >/dev/null; done
-          unzip -p dist/com_xdecarodraw_1.0.0.zip xdecarodraw.xml | grep -F '<version>1.0.0</version>'
-          unzip -l dist/com_xdecarodraw_1.0.0.zip | grep -F 'site/src/View/Live/HtmlView.php'
+          unzip -p "dist/com_xdecarodraw_${VERSION}.zip" xdecarodraw.xml | grep -F "<version>${VERSION}</version>"
+          unzip -l "dist/com_xdecarodraw_${VERSION}.zip" | grep -F 'site/src/View/Live/HtmlView.php'
 
   joomla-runtime:
     runs-on: ubuntu-latest
@@ -112,20 +118,23 @@ jobs:
       - name: Install Joomla, Core and Draw
         shell: bash
         run: |
-          set -euo pipefail; cd joomla
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          cd joomla
           php installation/joomla.php install --site-name='Draw CI' --admin-user='Draw CI Admin' --admin-username=admin --admin-password="DrawCI-${GITHUB_RUN_ID}!" --admin-email=admin@example.invalid --db-type=mysqli --db-host=127.0.0.1 --db-user=root --db-pass='' --db-name=joomla --db-prefix=xdd_ --db-encryption=0 --no-interaction
           php cli/joomla.php extension:install --path=/tmp/core.zip -vvv
           if [ '${{ matrix.mode }}' = 'repair-0.2.0' ]; then php cli/joomla.php extension:install --path=/tmp/draw-old.zip -vvv; fi
-          php cli/joomla.php extension:install --path="$GITHUB_WORKSPACE/dist/pkg_xdecarodraw_1.0.0.zip" -vvv
+          php cli/joomla.php extension:install --path="$GITHUB_WORKSPACE/dist/pkg_xdecarodraw_${VERSION}.zip" -vvv
       - name: Verify repaired schema
         shell: bash
         run: |
           set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
           MYSQL=(mysql --protocol=TCP -h127.0.0.1 -uroot --batch --skip-column-names joomla)
           test "$("${MYSQL[@]}" -e "SELECT COUNT(*) FROM xdd_extensions WHERE type='package' AND element='pkg_xdecarodraw';")" = 1
           test "$("${MYSQL[@]}" -e "SELECT COUNT(*) FROM xdd_extensions WHERE type='component' AND element='com_xdecarodraw';")" = 1
           for t in draws entries targets assignments audit; do test "$("${MYSQL[@]}" -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='joomla' AND table_name='xdd_xdecarodraw_${t}';")" = 1; done
           schema="$("${MYSQL[@]}" -e "SELECT s.version_id FROM xdd_schemas s JOIN xdd_extensions e ON e.extension_id=s.extension_id WHERE e.type='component' AND e.element='com_xdecarodraw' LIMIT 1;")"
-          test "$schema" = '1.0.0'
+          test "$schema" = "$VERSION"
       - name: Exercise Draw runtime lifecycle
         run: DRAW_JOOMLA_ROOT="$GITHUB_WORKSPACE/joomla" php tests/runtime-probe.php

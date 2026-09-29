@@ -108,7 +108,9 @@ final class DrawReadService
         $query = $this->db->getQuery(true)
             ->select([
                 'a.id', 'a.execution_no', 'a.sequence_no', 'a.revealed_at', 'a.created',
-                'e.entry_key', 'e.display_name', 'e.pot_key', 'e.metadata AS entry_metadata',
+                'e.entry_key', 'e.display_name', 'e.pot_key',
+                'e.source_component', 'e.source_entity', 'e.source_id',
+                'e.metadata AS entry_metadata',
                 't.target_type', 't.target_key', 't.position_no', 't.metadata AS target_metadata',
             ])
             ->from($this->db->quoteName('#__xdecarodraw_assignments', 'a'))
@@ -175,6 +177,11 @@ final class DrawReadService
         return [
             'schema' => 'xdecaro.draw.result.v1',
             'draw_id' => (int) $draw['id'],
+            'source' => [
+                'component' => (string) ($draw['source_component'] ?? ''),
+                'entity' => (string) ($draw['source_entity'] ?? ''),
+                'id' => (string) ($draw['source_id'] ?? ''),
+            ],
             'title' => (string) $draw['title'],
             'mode' => (string) $draw['mode'],
             'status' => (string) $draw['status'],
@@ -182,10 +189,22 @@ final class DrawReadService
             'total' => count($all),
             'revealed_count' => count($revealed),
             'assignments' => array_map(static fn (array $row): array => [
+                'sequence' => (int) $row['sequence_no'],
                 'sequence_no' => (int) $row['sequence_no'],
                 'entry_key' => (string) $row['entry_key'],
+                'entry_source' => [
+                    'component' => (string) ($row['source_component'] ?? ''),
+                    'entity' => (string) ($row['source_entity'] ?? ''),
+                    'id' => (string) ($row['source_id'] ?? ''),
+                ],
                 'display_name' => (string) $row['display_name'],
                 'pot_key' => (string) ($row['pot_key'] ?? ''),
+                'target' => [
+                    'type' => (string) $row['target_type'],
+                    'key' => (string) $row['target_key'],
+                    'position' => $row['position_no'],
+                    'metadata' => $row['target_metadata'],
+                ],
                 'target_type' => (string) $row['target_type'],
                 'target_key' => (string) $row['target_key'],
                 'position_no' => $row['position_no'],

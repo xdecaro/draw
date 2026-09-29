@@ -2,6 +2,25 @@
 
 All notable changes to Draw by xdecaro follow Semantic Versioning.
 
+## [1.1.0] - 2026-09-29
+
+### Added
+- Public optional integration facade exposed as `DrawComponent::getIntegrationService()`.
+- Versioned normalized request contract `xdecaro.draw.request.v1` for external owners such as Competitions.
+- Strict normalization for source references, entries, targets and supported declarative constraints before delegating to the existing Draw engine.
+- Stable source references in `xdecaro.draw.result.v1` for the source entity and each assigned entry.
+- Structured `sequence` and `target` fields in the v1 result while preserving existing live-snapshot aliases for backward compatibility.
+- Integration contract and behavior regression tests.
+
+### Changed
+- CI version checks/build paths now derive from `VERSION` instead of being hardcoded to 1.0.0.
+- Integration documentation now uses current `com_xdecarocompetitions` season/participation references.
+
+### Compatibility
+- The deterministic solver, seed/hash behavior, lifecycle, audit history and existing live reveal remain unchanged.
+- Draw still has no mandatory dependency on Competitions and never reads or writes `#__xdecarocompetitions_*` tables.
+- Consumers must treat Draw as optional and use the public integration facade rather than private services/storage.
+
 ## [1.0.0] - 2026-09-09
 
 ### Added
