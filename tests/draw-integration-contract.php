@@ -39,8 +39,17 @@ if (is_file($componentPath) && !str_contains(file_get_contents($componentPath), 
 if (is_file($providerPath) && !str_contains(file_get_contents($providerPath), 'DrawIntegrationService::class')) {
     $failures[] = 'Provider must register DrawIntegrationService.';
 }
-if (is_file($readPath) && !str_contains(file_get_contents($readPath), 'xdecaro.draw.result.v1')) {
-    $failures[] = 'Public result schema must remain xdecaro.draw.result.v1.';
+if (is_file($readPath)) {
+    $read = file_get_contents($readPath);
+    if (!str_contains($read, 'xdecaro.draw.result.v1')) {
+        $failures[] = 'Public result schema must remain xdecaro.draw.result.v1.';
+    }
+    $snapshot = strstr($read, 'public function getPublicSnapshot');
+    foreach (["'source' => [", "'entry_source' => ["] as $needle) {
+        if ($snapshot === false || !str_contains($snapshot, $needle)) {
+            $failures[] = 'Public result must expose stable source reference marker: ' . $needle;
+        }
+    }
 }
 
 if ($failures) {
