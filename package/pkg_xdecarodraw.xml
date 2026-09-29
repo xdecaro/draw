@@ -2,12 +2,13 @@
 <extension type="package" method="upgrade">
   <name>Draw by xdecaro</name>
   <packagename>xdecarodraw</packagename>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
   <creationDate>2026-09</creationDate>
   <author>Luca De Caro</author>
   <authorUrl>https://github.com/xdecaro/draw</authorUrl>
   <license>GNU General Public License version 2 or later</license>
   <description>Server-side controlled draws, live reveal and audit for Joomla.</description>
+  <targetplatform name="joomla" version="6.*" />
   <files>
     <file type="component" id="com_xdecarodraw">com_xdecarodraw.zip</file>
   </files>
