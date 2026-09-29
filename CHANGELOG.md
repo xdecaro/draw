@@ -2,6 +2,17 @@
 
 All notable changes to Draw by xdecaro follow Semantic Versioning.
 
+## [1.1.1] - 2026-09-29
+
+### Changed
+- Draw now explicitly targets Joomla 6 only in the component manifest, package manifest and update server.
+- Removed Joomla 4.4 and Joomla 5.4 runtime jobs; CI now gates Joomla 6.1.3 with PHP 8.3.
+- Raised the update-server PHP baseline to 8.3.
+
+### Compatibility
+- Joomla 4 and Joomla 5 are not supported.
+- No database or Draw-engine behavior changes.
+
 ## [1.1.0] - 2026-09-29
 
 ### Added
