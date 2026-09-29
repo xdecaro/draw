@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.1','8.3']
+        php: ['8.3']
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -45,6 +45,9 @@ jobs:
               r=ET.parse(p).getroot(); n=r.find('version') if r.tag=='extension' else r.find('./update/version'); assert n is not None and n.text==v,(p,'version mismatch')
           assert json.loads(pathlib.Path('component/media/joomla.asset.json').read_text())['version']==v
           assert pathlib.Path(f'component/admin/sql/updates/mysql/{v}.sql').is_file()
+          for manifest in ['component/xdecarodraw.xml','package/pkg_xdecarodraw.xml']:
+              root=ET.parse(manifest).getroot(); target=root.find('targetplatform'); assert target is not None and target.get('name')=='joomla' and target.get('version')=='6.*',(manifest,'must be Joomla 6 only')
+          update_target=ET.parse('updates/pkg_xdecarodraw.xml').getroot().find('./update/targetplatform'); assert update_target is not None and update_target.get('version')=='6\\.[0-9]+',('update feed','must be Joomla 6 only')
           PY
           grep -Fq 'charset="utf8"' component/xdecarodraw.xml
           ! grep -Fq 'charset="utf8mb4"' component/xdecarodraw.xml
@@ -67,6 +70,7 @@ jobs:
           diff -u /tmp/draw-sums dist/SHA256SUMS.txt
           for z in dist/*.zip; do unzip -t "$z" >/dev/null; done
           unzip -p "dist/com_xdecarodraw_${VERSION}.zip" xdecarodraw.xml | grep -F "<version>${VERSION}</version>"
+          unzip -p "dist/com_xdecarodraw_${VERSION}.zip" xdecarodraw.xml | grep -F '<targetplatform name="joomla" version="6.*" />'
           unzip -l "dist/com_xdecarodraw_${VERSION}.zip" | grep -F 'site/src/View/Live/HtmlView.php'
 
   joomla-runtime:
@@ -76,8 +80,6 @@ jobs:
       fail-fast: false
       matrix:
         joomla:
-          - {version: '4.4.14', php: '8.2', sha256: 'a1877816e070fa087529afcd73f214b7d5d76964d3ede0c3e6dfd354baad27b8'}
-          - {version: '5.4.8', php: '8.3', sha256: '8d3585939bca8e6b1d5f3e97dda2cc557c61e610daf488c871e1f62a97be9bd0'}
           - {version: '6.1.3', php: '8.3', sha256: 'a49305652503f9344d046d55471f324a07882996132ed967c3b0fe34707ae4a1'}
         mode: ['clean','repair-0.2.0']
     services:
