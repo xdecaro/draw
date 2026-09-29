@@ -21,6 +21,10 @@ return new class implements ServiceProviderInterface {
         $container->share(CoreIntegrationService::class, static fn (): CoreIntegrationService => new CoreIntegrationService());
         $container->share(DrawReadService::class, static fn (Container $container): DrawReadService => new DrawReadService($container->get(DatabaseInterface::class)));
         $container->share(DrawService::class, static fn (Container $container): DrawService => new DrawService($container->get(DatabaseInterface::class), $container->get(DrawReadService::class)));
+        $container->share(DrawIntegrationService::class, static fn (Container $container): DrawIntegrationService => new DrawIntegrationService(
+            $container->get(DrawService::class),
+            $container->get(DrawReadService::class)
+        ));
         $container->set(ComponentInterface::class, static function (Container $container): ComponentInterface {
             $component = new DrawComponent(
                 $container->get(ComponentDispatcherFactoryInterface::class),
@@ -29,6 +33,7 @@ return new class implements ServiceProviderInterface {
             $component->setDrawService($container->get(DrawService::class));
             $component->setReadService($container->get(DrawReadService::class));
             $component->setCoreIntegrationService($container->get(CoreIntegrationService::class));
+            $component->setIntegrationService($container->get(DrawIntegrationService::class));
 
             return $component;
         });
