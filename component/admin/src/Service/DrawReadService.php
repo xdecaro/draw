@@ -189,6 +189,7 @@ final class DrawReadService
             'total' => count($all),
             'revealed_count' => count($revealed),
             'assignments' => array_map(static fn (array $row): array => [
+                'sequence' => (int) $row['sequence_no'],
                 'sequence_no' => (int) $row['sequence_no'],
                 'entry_key' => (string) $row['entry_key'],
                 'entry_source' => [
@@ -198,6 +199,12 @@ final class DrawReadService
                 ],
                 'display_name' => (string) $row['display_name'],
                 'pot_key' => (string) ($row['pot_key'] ?? ''),
+                'target' => [
+                    'type' => (string) $row['target_type'],
+                    'key' => (string) $row['target_key'],
+                    'position' => $row['position_no'],
+                    'metadata' => $row['target_metadata'],
+                ],
                 'target_type' => (string) $row['target_type'],
                 'target_key' => (string) $row['target_key'],
                 'position_no' => $row['position_no'],
