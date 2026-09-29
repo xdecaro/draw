@@ -59,6 +59,9 @@ jobs:
               r=ET.parse(p).getroot(); n=r.find('version') if r.tag=='extension' else r.find('./update/version'); assert n is not None and n.text==v
           assert json.loads(pathlib.Path('component/media/joomla.asset.json').read_text())['version']==v
           assert pathlib.Path(f'component/admin/sql/updates/mysql/{v}.sql').is_file()
+          for manifest in ['component/xdecarodraw.xml','package/pkg_xdecarodraw.xml']:
+              root=ET.parse(manifest).getroot(); target=root.find('targetplatform'); assert target is not None and target.get('name')=='joomla' and target.get('version')=='6.*',(manifest,'must be Joomla 6 only')
+          update_target=ET.parse('updates/pkg_xdecarodraw.xml').getroot().find('./update/targetplatform'); assert update_target is not None and update_target.get('version')=='6\\.[0-9]+',('update feed','must be Joomla 6 only')
           PY
           grep -Fq 'charset="utf8"' component/xdecarodraw.xml
           ! grep -RniE 'DROP[[:space:]]+TABLE|TRUNCATE[[:space:]]+TABLE' component/admin/sql
@@ -75,7 +78,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw ${VERSION}: deterministic server-side draw engine, live reveal and audit, plus the optional versioned public integration facade for xdecaro products such as Competitions. Joomla 4/5/6 compatibility is gated in CI."
+          gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw ${VERSION}: deterministic server-side draw engine, live reveal and audit, plus the optional versioned public integration facade for xdecaro products such as Competitions. Joomla 6.1.3 / PHP 8.3 is the supported baseline; Joomla 4 and Joomla 5 are unsupported."
       - name: Publish package checksum
         if: steps.visibility.outputs.visibility == 'public'
         run: |
