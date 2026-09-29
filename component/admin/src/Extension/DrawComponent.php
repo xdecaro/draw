@@ -6,6 +6,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Extension\MVCComponent;
 use LogicException;
 use xdecaro\Component\Draw\Administrator\Service\CoreIntegrationService;
+use xdecaro\Component\Draw\Administrator\Service\DrawIntegrationService;
 use xdecaro\Component\Draw\Administrator\Service\DrawReadService;
 use xdecaro\Component\Draw\Administrator\Service\DrawService;
 
@@ -14,10 +15,12 @@ final class DrawComponent extends MVCComponent
     private ?DrawService $drawService = null;
     private ?DrawReadService $readService = null;
     private ?CoreIntegrationService $coreIntegrationService = null;
+    private ?DrawIntegrationService $integrationService = null;
 
     public function setDrawService(DrawService $service): void { $this->drawService = $service; }
     public function setReadService(DrawReadService $service): void { $this->readService = $service; }
     public function setCoreIntegrationService(CoreIntegrationService $service): void { $this->coreIntegrationService = $service; }
+    public function setIntegrationService(DrawIntegrationService $service): void { $this->integrationService = $service; }
 
     public function getDrawService(): DrawService
     {
@@ -35,5 +38,11 @@ final class DrawComponent extends MVCComponent
     {
         if (!$this->coreIntegrationService) { throw new LogicException('CoreIntegrationService is not initialized.'); }
         return $this->coreIntegrationService;
+    }
+
+    public function getIntegrationService(): DrawIntegrationService
+    {
+        if (!$this->integrationService) { throw new LogicException('DrawIntegrationService is not initialized.'); }
+        return $this->integrationService;
     }
 }
