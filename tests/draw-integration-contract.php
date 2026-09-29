@@ -45,9 +45,9 @@ if (is_file($readPath)) {
         $failures[] = 'Public result schema must remain xdecaro.draw.result.v1.';
     }
     $snapshot = strstr($read, 'public function getPublicSnapshot');
-    foreach (["'source' => [", "'entry_source' => ["] as $needle) {
+    foreach (["'source' => [", "'entry_source' => [", "'sequence' =>", "'target' => ["] as $needle) {
         if ($snapshot === false || !str_contains($snapshot, $needle)) {
-            $failures[] = 'Public result must expose stable source reference marker: ' . $needle;
+            $failures[] = 'Public result must expose contract marker: ' . $needle;
         }
     }
 }
