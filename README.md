@@ -189,7 +189,7 @@ These are Draw-domain events, not Core business events.
 
 ## Joomla architecture
 
-Target Joomla 4, 5 and 6 where technically possible.
+Target Joomla 6 only. Joomla 4 and Joomla 5 are not supported.
 
 Use modern Joomla APIs:
 
@@ -291,6 +291,6 @@ Generated ZIPs must be installable directly through Joomla.
 10. implement Core integration using existing public APIs;
 11. implement optional Competitions adapter through stable public boundaries;
 12. add automated tests, build workflow, update server and installable ZIP;
-13. verify Joomla 4/5/6, desktop/tablet/smartphone, light/dark and accessibility.
+13. verify Joomla 6.1.3, desktop/tablet/smartphone, light/dark and accessibility.
 
 The detailed component implementation belongs in the Draw project; this repository architecture is the source of truth for its product boundary and integrations.
