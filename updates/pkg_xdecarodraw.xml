@@ -10,6 +10,7 @@
     <downloads>
       <downloadurl type="full" format="zip">https://github.com/xdecaro/draw/releases/download/v1.1.1/pkg_xdecarodraw_1.1.1.zip</downloadurl>
     </downloads>
+    <sha256>c7fb587ac69b6c356edc2c060e8ebac0e3112d908ea5c879fc091c7f41e9459a</sha256>
     <targetplatform name="joomla" version="6\.[0-9]+" />
     <php_minimum>8.3.0</php_minimum>
   </update>
