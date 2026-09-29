@@ -50,16 +50,21 @@ jobs:
           find component tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/core-integration-smoke.php
           php tests/draw-engine.php
+          php tests/draw-integration-contract.php
+          php tests/draw-integration-service.php
           python3 - <<'PY'
           import json,pathlib,xml.etree.ElementTree as ET
           v=pathlib.Path('VERSION').read_text().strip()
           for p in ['component/xdecarodraw.xml','package/pkg_xdecarodraw.xml','updates/pkg_xdecarodraw.xml']:
               r=ET.parse(p).getroot(); n=r.find('version') if r.tag=='extension' else r.find('./update/version'); assert n is not None and n.text==v
           assert json.loads(pathlib.Path('component/media/joomla.asset.json').read_text())['version']==v
+          assert pathlib.Path(f'component/admin/sql/updates/mysql/{v}.sql').is_file()
           PY
           grep -Fq 'charset="utf8"' component/xdecarodraw.xml
           ! grep -RniE 'DROP[[:space:]]+TABLE|TRUNCATE[[:space:]]+TABLE' component/admin/sql
           ! grep -Rni '#__xdecarocompetitions_' component
+          grep -Fq 'xdecaro.draw.request.v1' component/admin/src/Service/DrawIntegrationService.php
+          grep -Fq 'xdecaro.draw.result.v1' component/admin/src/Service/DrawReadService.php
       - name: Build deterministic packages
         if: steps.visibility.outputs.visibility == 'public'
         run: |
@@ -70,7 +75,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw 1.0: server-side deterministic assignment, validated constraints, immutable execution history, public live reveal, audit trail and optional Core 1.4 capabilities. Joomla 4/5/6 compatibility is gated in CI."
+          gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw ${VERSION}: deterministic server-side draw engine, live reveal and audit, plus the optional versioned public integration facade for xdecaro products such as Competitions. Joomla 4/5/6 compatibility is gated in CI."
       - name: Publish package checksum
         if: steps.visibility.outputs.visibility == 'public'
         run: |
