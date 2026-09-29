@@ -1,0 +1,2 @@
+-- Draw 1.1.1
+-- No database schema changes. Joomla 6-only compatibility metadata release.
