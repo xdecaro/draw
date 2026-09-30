@@ -9,7 +9,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use Joomla\Database\DatabaseInterface;
-use xdecaro\Component\Draw\Administrator\Service\CoreIntegrationService;
+use xdecaro\Component\Draw\Administrator\Extension\DrawComponent;
 
 final class HtmlView extends BaseHtmlView
 {
@@ -27,11 +27,17 @@ final class HtmlView extends BaseHtmlView
         if (!$app->getIdentity()->authorise('core.manage', 'com_xdecarodraw')) {
             throw new \RuntimeException(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
+
+        $component = $app->bootComponent('com_xdecarodraw');
+        if (!$component instanceof DrawComponent) {
+            throw new \RuntimeException('Draw component facade unavailable.');
+        }
+
         ToolbarHelper::title(Text::_('COM_XDECARODRAW_INFORMATION'), 'info-circle');
         $wa = $app->getDocument()->getWebAssetManager();
         $wa->getRegistry()->addExtensionRegistryFile('com_xdecarodraw');
         try {
-            $core = Factory::getContainer()->get(CoreIntegrationService::class);
+            $core = $component->getCoreIntegrationService();
             $this->coreVersion = $core->getVersion();
             $this->coreApiAvailable = $core->isReferenceApiAvailable();
             $this->coreCapabilityAvailable = $core->isCapabilityApiAvailable();
