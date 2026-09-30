@@ -30,6 +30,7 @@ jobs:
           php tests/draw-engine.php
           php tests/draw-integration-contract.php
           php tests/draw-integration-service.php
+          php tests/admin-view-service-boundary.php
       - name: Validate metadata and boundaries
         shell: bash
         run: |

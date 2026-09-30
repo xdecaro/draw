@@ -1,0 +1,2 @@
+-- Draw 1.1.3
+-- No database schema changes. Fixes administrator views to resolve Draw-owned services through the component facade.

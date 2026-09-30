@@ -2,6 +2,20 @@
 
 All notable changes to Draw by xdecaro follow Semantic Versioning.
 
+## [1.1.3] - 2026-10-01
+
+### Fixed
+- Fixed the administrator Dashboard fatal `DrawReadService has not been registered with the container` by resolving Draw-owned services through `bootComponent('com_xdecarodraw')` and the public `DrawComponent` facade instead of Joomla's global DI container.
+- Applied the same service-boundary fix to the Draw detail and Information administrator views to prevent the same failure on subsequent navigation.
+
+### Validation
+- Added an administrator service-boundary regression test that rejects direct global-container lookups for Draw-owned services.
+- Joomla 6.1.3 / PHP 8.3 remains the supported runtime baseline.
+
+### Compatibility
+- Joomla 6 only. Joomla 4 and Joomla 5 are not supported.
+- No database schema or deterministic Draw-engine behavior changes.
+
 ## [1.1.2] - 2026-10-01
 
 ### Fixed
@@ -61,7 +75,7 @@ All notable changes to Draw by xdecaro follow Semantic Versioning.
 - Standard Xdecaro Information page, diagnostics, responsive administration UI, light/dark-compatible styling and reduced-motion support.
 - English and Italian language files for administrator and site views.
 - Deterministic Joomla package build and stable GitHub release workflow.
-- CI gates for PHP 8.1/8.3 and Joomla 4.4.14, 5.4.8 and 6.1.3.
+- Historical CI coverage included PHP 8.1/8.3 and Joomla 4.4.14, 5.4.8 and 6.1.3.
 
 ### Fixed
 - Historical component manifest SQL charset declaration changed from `utf8mb4` to Joomla-compatible `utf8` while retaining utf8mb4 in the SQL schema itself.

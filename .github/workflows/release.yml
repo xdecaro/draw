@@ -52,6 +52,7 @@ jobs:
           php tests/draw-engine.php
           php tests/draw-integration-contract.php
           php tests/draw-integration-service.php
+          php tests/admin-view-service-boundary.php
           python3 - <<'PY'
           import json,pathlib,xml.etree.ElementTree as ET
           v=pathlib.Path('VERSION').read_text().strip()
@@ -84,7 +85,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw ${VERSION}: Joomla 6-only repair release. It reinstalls the complete component file set, verifies the DI provider/DrawReadService packaging, fixes administrator submenu language keys, and keeps the existing deterministic draw engine and data unchanged. Joomla 6.1.3 / PHP 8.3 is the supported baseline; Joomla 4 and Joomla 5 are unsupported."
+          gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw ${VERSION}: fixes Joomla 6 administrator views so Draw-owned services are resolved through the component facade instead of the global DI container. This resolves the DrawReadService container fatal on Dashboard/Draw views while preserving data and deterministic draw behavior. Joomla 6.1.3 / PHP 8.3 is the supported baseline."
       - name: Publish package checksum
         if: steps.visibility.outputs.visibility == 'public'
         run: |
