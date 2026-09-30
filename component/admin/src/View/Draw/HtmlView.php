@@ -7,8 +7,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
-use xdecaro\Component\Draw\Administrator\Service\CoreIntegrationService;
-use xdecaro\Component\Draw\Administrator\Service\DrawReadService;
+use xdecaro\Component\Draw\Administrator\Extension\DrawComponent;
 
 final class HtmlView extends BaseHtmlView
 {
@@ -30,8 +29,14 @@ final class HtmlView extends BaseHtmlView
         if (!$identity->authorise('core.manage', 'com_xdecarodraw')) {
             throw new \RuntimeException(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
+
+        $component = $app->bootComponent('com_xdecarodraw');
+        if (!$component instanceof DrawComponent) {
+            throw new \RuntimeException('Draw component facade unavailable.');
+        }
+
         $id = $app->input->getInt('id');
-        $read = Factory::getContainer()->get(DrawReadService::class);
+        $read = $component->getReadService();
         $this->draw = $read->getDraw($id);
         $this->entries = $read->getEntries($id);
         $this->targets = $read->getTargets($id);
@@ -46,7 +51,7 @@ final class HtmlView extends BaseHtmlView
         ToolbarHelper::back(Text::_('JTOOLBAR_BACK'), 'index.php?option=com_xdecarodraw&view=dashboard');
         $wa = $app->getDocument()->getWebAssetManager();
         $wa->getRegistry()->addExtensionRegistryFile('com_xdecarodraw');
-        try { Factory::getContainer()->get(CoreIntegrationService::class)->enableUi($wa); } catch (\Throwable) {}
+        try { $component->getCoreIntegrationService()->enableUi($wa); } catch (\Throwable) {}
         $wa->useStyle('com_xdecarodraw.admin');
         parent::display($tpl);
     }
