@@ -68,17 +68,23 @@ jobs:
           ! grep -Rni '#__xdecarocompetitions_' component
           grep -Fq 'xdecaro.draw.request.v1' component/admin/src/Service/DrawIntegrationService.php
           grep -Fq 'xdecaro.draw.result.v1' component/admin/src/Service/DrawReadService.php
+          grep -Fq 'COM_XDECARODRAW_DASHBOARD="Dashboard"' component/admin/language/en-GB/com_xdecarodraw.sys.ini
+          grep -Fq 'COM_XDECARODRAW_INFORMATION="Informazioni"' component/admin/language/it-IT/com_xdecarodraw.sys.ini
       - name: Build deterministic packages
         if: steps.visibility.outputs.visibility == 'public'
         run: |
           chmod +x build/build.sh; build/build.sh; cp dist/SHA256SUMS.txt /tmp/draw-sums; build/build.sh; diff -u /tmp/draw-sums dist/SHA256SUMS.txt
           for file in dist/*.zip; do unzip -t "$file" >/dev/null; done
+          unzip -l "dist/com_xdecarodraw_${VERSION}.zip" | grep -F 'admin/services/provider.php'
+          unzip -l "dist/com_xdecarodraw_${VERSION}.zip" | grep -F 'admin/src/Service/DrawReadService.php'
+          unzip -p "dist/com_xdecarodraw_${VERSION}.zip" admin/language/en-GB/com_xdecarodraw.sys.ini | grep -F 'COM_XDECARODRAW_DASHBOARD="Dashboard"'
+          unzip -p "dist/com_xdecarodraw_${VERSION}.zip" admin/language/it-IT/com_xdecarodraw.sys.ini | grep -F 'COM_XDECARODRAW_INFORMATION="Informazioni"'
       - name: Publish stable release
         if: steps.visibility.outputs.visibility == 'public'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw ${VERSION}: deterministic server-side draw engine, live reveal and audit, plus the optional versioned public integration facade for xdecaro products such as Competitions. Joomla 6.1.3 / PHP 8.3 is the supported baseline; Joomla 4 and Joomla 5 are unsupported."
+          gh release create "v${VERSION}" "dist/com_xdecarodraw_${VERSION}.zip" "dist/pkg_xdecarodraw_${VERSION}.zip" "dist/SHA256SUMS.txt" --title "Draw by xdecaro ${VERSION}" --notes "Stable Draw ${VERSION}: Joomla 6-only repair release. It reinstalls the complete component file set, verifies the DI provider/DrawReadService packaging, fixes administrator submenu language keys, and keeps the existing deterministic draw engine and data unchanged. Joomla 6.1.3 / PHP 8.3 is the supported baseline; Joomla 4 and Joomla 5 are unsupported."
       - name: Publish package checksum
         if: steps.visibility.outputs.visibility == 'public'
         run: |
