@@ -1,0 +1,2 @@
+-- Draw 1.1.2
+-- No database schema changes. Repair release for Joomla 6 administrator files and menu language metadata.

@@ -2,6 +2,20 @@
 
 All notable changes to Draw by xdecaro follow Semantic Versioning.
 
+## [1.1.2] - 2026-10-01
+
+### Fixed
+- Added the missing administrator system-language keys `COM_XDECARODRAW_DASHBOARD` and `COM_XDECARODRAW_INFORMATION`, preventing raw constants in Joomla's Components menu.
+- Prepared a non-destructive repair release that reinstalls the complete Draw component file set on Joomla 6 installations showing an inconsistent or partial administrator install.
+
+### Validation
+- Release/build gates verify that the installable component ZIP contains `admin/services/provider.php`, `admin/src/Service/DrawReadService.php` and the required administrator `.sys.ini` language keys.
+- Runtime remains verified on Joomla 6.1.3 with PHP 8.3.
+
+### Compatibility
+- Joomla 6 only. Joomla 4 and Joomla 5 are not supported.
+- No database schema or deterministic Draw-engine behavior changes.
+
 ## [1.1.1] - 2026-09-29
 
 ### Changed
