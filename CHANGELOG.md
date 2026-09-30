@@ -8,6 +8,11 @@ All notable changes to Draw by xdecaro follow Semantic Versioning.
 - Draw now explicitly targets Joomla 6 only in the component manifest, package manifest and update server.
 - Removed Joomla 4.4 and Joomla 5.4 runtime jobs; CI now gates Joomla 6.1.3 with PHP 8.3.
 - Raised the update-server PHP baseline to 8.3.
+- Build/runtime gates now verify that the installable package contains the Joomla service provider, `DrawReadService` and system language files needed by the administrator menu.
+
+### Fixed
+- Added missing `COM_XDECARODRAW_DASHBOARD` and `COM_XDECARODRAW_INFORMATION` keys to the administrator `.sys.ini` language files, preventing raw language constants in the Joomla Components menu.
+- 1.1.1 acts as a repair package for incomplete/mixed Draw installations by reinstalling the complete component file set without destructive database changes.
 
 ### Compatibility
 - Joomla 4 and Joomla 5 are not supported.
