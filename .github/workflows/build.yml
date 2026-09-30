@@ -58,6 +58,10 @@ jobs:
           grep -Fq 'CapabilityRegistry' component/admin/src/Service/CoreIntegrationService.php
           grep -Fq 'xdecaro.draw.result.v1' component/admin/src/Service/DrawReadService.php
           grep -Fq 'xdecaro.draw.request.v1' component/admin/src/Service/DrawIntegrationService.php
+          grep -Fq 'COM_XDECARODRAW_DASHBOARD=' component/admin/language/en-GB/com_xdecarodraw.sys.ini
+          grep -Fq 'COM_XDECARODRAW_INFORMATION=' component/admin/language/en-GB/com_xdecarodraw.sys.ini
+          grep -Fq 'COM_XDECARODRAW_DASHBOARD=' component/admin/language/it-IT/com_xdecarodraw.sys.ini
+          grep -Fq 'COM_XDECARODRAW_INFORMATION=' component/admin/language/it-IT/com_xdecarodraw.sys.ini
           for table in draws entries targets assignments audit; do grep -Fq "CREATE TABLE IF NOT EXISTS \`#__xdecarodraw_${table}\`" component/admin/sql/updates/mysql/1.0.0.sql; done
       - name: Deterministic build
         run: |
@@ -71,6 +75,10 @@ jobs:
           for z in dist/*.zip; do unzip -t "$z" >/dev/null; done
           unzip -p "dist/com_xdecarodraw_${VERSION}.zip" xdecarodraw.xml | grep -F "<version>${VERSION}</version>"
           unzip -p "dist/com_xdecarodraw_${VERSION}.zip" xdecarodraw.xml | grep -F '<targetplatform name="joomla" version="6.*" />'
+          unzip -l "dist/com_xdecarodraw_${VERSION}.zip" | grep -F 'admin/services/provider.php'
+          unzip -l "dist/com_xdecarodraw_${VERSION}.zip" | grep -F 'admin/src/Service/DrawReadService.php'
+          unzip -p "dist/com_xdecarodraw_${VERSION}.zip" admin/language/en-GB/com_xdecarodraw.sys.ini | grep -F 'COM_XDECARODRAW_DASHBOARD="Dashboard"'
+          unzip -p "dist/com_xdecarodraw_${VERSION}.zip" admin/language/it-IT/com_xdecarodraw.sys.ini | grep -F 'COM_XDECARODRAW_INFORMATION="Informazioni"'
           unzip -l "dist/com_xdecarodraw_${VERSION}.zip" | grep -F 'site/src/View/Live/HtmlView.php'
 
   joomla-runtime:
@@ -127,11 +135,15 @@ jobs:
           php cli/joomla.php extension:install --path=/tmp/core.zip -vvv
           if [ '${{ matrix.mode }}' = 'repair-0.2.0' ]; then php cli/joomla.php extension:install --path=/tmp/draw-old.zip -vvv; fi
           php cli/joomla.php extension:install --path="$GITHUB_WORKSPACE/dist/pkg_xdecarodraw_${VERSION}.zip" -vvv
-      - name: Verify repaired schema
+      - name: Verify repaired files and schema
         shell: bash
         run: |
           set -euo pipefail
           VERSION="$(tr -d '\r\n' < VERSION)"
+          test -f joomla/administrator/components/com_xdecarodraw/services/provider.php
+          test -f joomla/administrator/components/com_xdecarodraw/src/Service/DrawReadService.php
+          grep -Fq 'COM_XDECARODRAW_DASHBOARD="Dashboard"' joomla/administrator/components/com_xdecarodraw/language/en-GB/com_xdecarodraw.sys.ini
+          grep -Fq 'COM_XDECARODRAW_INFORMATION="Informazioni"' joomla/administrator/components/com_xdecarodraw/language/it-IT/com_xdecarodraw.sys.ini
           MYSQL=(mysql --protocol=TCP -h127.0.0.1 -uroot --batch --skip-column-names joomla)
           test "$("${MYSQL[@]}" -e "SELECT COUNT(*) FROM xdd_extensions WHERE type='package' AND element='pkg_xdecarodraw';")" = 1
           test "$("${MYSQL[@]}" -e "SELECT COUNT(*) FROM xdd_extensions WHERE type='component' AND element='com_xdecarodraw';")" = 1
